@@ -4,7 +4,7 @@ import pyspark.sql.functions as F
 from pyspark.sql.types import StructType, StructField, StringType, BooleanType, IntegerType, LongType, ArrayType, MapType, TimestampType
 from pyspark.sql.functions import from_json, col, expr, sum, avg, min, max
 
-BOOTSTRAP_SERVERS = "confluent-local-broker-1:51175"
+BOOTSTRAP_SERVERS = "confluent-local-broker-1:60242"
 TOPIC = "wikimedia_events"
 
 def main():
@@ -89,13 +89,20 @@ def main():
     #     .start()\
     #     .awaitTermination()
 
- # # Metrics 
-    
- #    query = metrics_df.writeStream\
- #        .outputMode("complete")\
- #        .format("console")\
- #        .start()\
- #        .awaitTermination()
+ # Metrics 
+    stats = selected_fields_df.agg(
+        F.count("*").alias("total_count"),
+        (F.sum(F.col("bot").cast("int")) / F.count("*")).alias("percent_bot"),
+        F.avg("length_diff").alias("average_length_diff"),
+        F.min("length_diff").alias("min_length_diff"),
+        F.max("length_diff").alias("max_length_diff")
+    )
+        
+    query = stats.writeStream\
+        .outputMode("complete")\
+        .format("console")\
+        .start()\
+        .awaitTermination()
 
 
 if __name__ == "__main__":
